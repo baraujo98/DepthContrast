@@ -2,7 +2,8 @@
 **build**
 **egg-info**
 **dist**
-data/
+**checkpoints**
+*.out
 *.pyc
 venv/
 *.idea/

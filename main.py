@@ -50,7 +50,8 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
 def main():
     args = parser.parse_args()
     cfg = yaml.safe_load(open(args.cfg))
-
+    print('Dataset:',cfg["dataset"]["DATASET_NAMES"])
+    
     if args.seed is not None:
         random.seed(args.seed)
         torch.manual_seed(args.seed)

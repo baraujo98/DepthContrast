@@ -161,17 +161,29 @@ class DepthContrastDataset(Dataset):
         point_path = self.data_objs[idx]
         try:
             if "Lidar" in self.cfg:
-                point = np.load(point_path)
-                if point.shape[1] != 4:
-                    temp = np.zeros((point.shape[0],4))
-                    temp[:,:3] = point
-                    point = np.copy(temp)
+                
+                if self.cfg["DATASET_NAMES"]==['waymo']:
+                    
+                    ## Load lidar frame from Waymo. (N, 7): [x, y, z, intensity, elongation, NLZ_flag]
+                    point = np.load(point_path)
 
-                upper_idx = np.sum((point[:,0:3] <= POINT_RANGE[3:6]).astype(np.int32), 1) == 3
-                lower_idx = np.sum((point[:,0:3] >= POINT_RANGE[0:3]).astype(np.int32), 1) == 3
+                    # Delete last point features
+                    if point.shape[1] != 4:
+                        temp = np.zeros((point.shape[0],4))
+                        temp[:,:3] = point
+                        point = np.copy(temp)
+                    
+                    # Delete points outside POINT_RANGE
+                    upper_idx = np.sum((point[:,0:3] <= POINT_RANGE[3:6]).astype(np.int32), 1) == 3
+                    lower_idx = np.sum((point[:,0:3] >= POINT_RANGE[0:3]).astype(np.int32), 1) == 3
+                    new_pointidx = (upper_idx) & (lower_idx)
+                    point = point[new_pointidx,:]
+                
+                elif self.cfg["DATASET_NAMES"]==['kitti']:
 
-                new_pointidx = (upper_idx) & (lower_idx)
-                point = point[new_pointidx,:]
+                    ## Load lidar frame from Kitti. (N, 4): [x, y, z, reflectance] after reshaping
+                    point = np.fromfile(str(point_path), dtype=np.float32).reshape(-1, 4)
+
             else:
                 point = np.load(point_path)
                 ### Add height
