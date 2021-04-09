@@ -1,3 +1,4 @@
 [submodule "third_party/OpenPCDet"]
 	path = third_party/OpenPCDet
 	url = https://github.com/baraujo98/OpenPCDet
+	branch = bernardo
