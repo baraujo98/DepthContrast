@@ -30,7 +30,9 @@ from torch.utils.data import Dataset
 import torch
 
 ### Waymo lidar range
-POINT_RANGE = np.array([  0. , -75. ,  -3. ,  75.0,  75. ,   3. ], dtype=np.float32)
+#POINT_RANGE = np.array([  0. , -75. ,  -3. ,  75.0,  75. ,   3. ], dtype=np.float32)
+### KITTI
+POINT_RANGE = np.array([ -75, -75, -3, 75, 75, 2 ], dtype=np.float32)
 
 class DepthContrastDataset(Dataset):
     """Base Self Supervised Learning Dataset Class."""
@@ -52,9 +54,9 @@ class DepthContrastDataset(Dataset):
 
         #### Add the voxelizer here
         if ("Lidar" in cfg) and cfg["VOX"]:
-            self.VOXEL_SIZE = [0.1, 0.1, 0.2]
+            self.VOXEL_SIZE = [0.05, 0.05, 0.1]
        
-            self.point_cloud_range = np.array([  0. , -75. ,  -3. ,  75.0,  75. ,   3. ], dtype=np.float32)
+            self.point_cloud_range = POINT_RANGE
             self.MAX_POINTS_PER_VOXEL = 5
             self.MAX_NUMBER_OF_VOXELS = 16000
             self.voxel_generator = VoxelGenerator(
@@ -172,17 +174,17 @@ class DepthContrastDataset(Dataset):
                         temp = np.zeros((point.shape[0],4))
                         temp[:,:3] = point
                         point = np.copy(temp)
-                    
-                    # Delete points outside POINT_RANGE
-                    upper_idx = np.sum((point[:,0:3] <= POINT_RANGE[3:6]).astype(np.int32), 1) == 3
-                    lower_idx = np.sum((point[:,0:3] >= POINT_RANGE[0:3]).astype(np.int32), 1) == 3
-                    new_pointidx = (upper_idx) & (lower_idx)
-                    point = point[new_pointidx,:]
                 
                 elif self.cfg["DATASET_NAMES"]==['kitti']:
 
                     ## Load lidar frame from Kitti. (N, 4): [x, y, z, reflectance] after reshaping
                     point = np.fromfile(str(point_path), dtype=np.float32).reshape(-1, 4)
+
+                # Delete points outside POINT_RANGE
+                upper_idx = np.sum((point[:,0:3] <= POINT_RANGE[3:6]).astype(np.int32), 1) == 3
+                lower_idx = np.sum((point[:,0:3] >= POINT_RANGE[0:3]).astype(np.int32), 1) == 3
+                new_pointidx = (upper_idx) & (lower_idx)
+                point = point[new_pointidx,:]
 
             else:
                 point = np.load(point_path)
