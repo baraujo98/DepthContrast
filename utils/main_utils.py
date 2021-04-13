@@ -49,8 +49,8 @@ def write_ply_color(points, colors, out_filename):
     for i in range(N):
         #c = pyplot.cm.hsv(labels[i])
         c = colors[i,:]
-        c = [int(x*255) for x in c]
-        fout.write('%f %f %f %d %d %d\n' % (points[i,0],points[i,1],points[i,2],c[0],c[1],c[2]))
+        c = [int(x*150) for x in c]
+        fout.write('%f %f %f %d %d %d\n' % (points[i,0],points[i,1],points[i,2],c[0],c[0],c[0]))
     fout.close()
 
 ### Recurisive copy to GPU
@@ -196,7 +196,7 @@ def build_dataloader(config, num_workers, distributed):
         dataset=datasets,
         dataset_config=config,
         num_dataloader_workers=num_workers,
-        pin_memory=False,### Questionable
+        pin_memory=True,### Questionable
     )
     return loader
 

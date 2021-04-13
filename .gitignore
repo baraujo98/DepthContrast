@@ -3,6 +3,7 @@
 **egg-info**
 **dist**
 **checkpoints**
+**viz**
 *.out
 *.pyc
 venv/

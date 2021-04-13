@@ -1,6 +1,6 @@
 resume: true
 test_only: false
-num_workers: 10
+num_workers: 1
 
 required_devices: 1
 no_test: false
@@ -10,12 +10,12 @@ allow_double_bs: false
 seed: 0
 distributed: false
 test_freq: 10
-print_freq: 5
+print_freq: 10
 
 dataset:
   DATASET_NAMES: [kitti]
   DATA_PATHS: ['/ctm-hdd-pool01/baraujo/kitti/dc/kitti.npy']
-  BATCHSIZE_PER_REPLICA: 32
+  BATCHSIZE_PER_REPLICA: 8
   LABEL_TYPE: sample_index
   DATA_TYPE: point_vox
   Lidar: True
@@ -44,8 +44,8 @@ optimizer:
   num_epochs: 2000
   lr:
     name: "cosine"
-    base_lr: 0.12
-    final_lr: 0.00012
+    base_lr: 0.04
+    final_lr: 0.00004
 
 model:
   name: "PointnetMSG_UnetV2"

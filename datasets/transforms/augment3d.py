@@ -43,7 +43,8 @@ def pc2obj(pc, filepath='test.obj'):
 def write_ply_color(points, colors, out_filename):
     """ Color (N,3) points with labels (N) within range 0 ~ num_classes-1 as OBJ file """
     N = points.shape[0]
-    fout = open(out_filename, 'w')
+    save_dir="viz/"
+    fout = open(save_dir+out_filename, 'w')
     ### Write header here
     fout.write("ply\n")
     fout.write("format ascii 1.0\n")
@@ -58,8 +59,8 @@ def write_ply_color(points, colors, out_filename):
     for i in range(N):
         #c = pyplot.cm.hsv(labels[i])
         c = colors[i,:]
-        c = [int(x*255) for x in c]
-        fout.write('%f %f %f %d %d %d\n' % (points[i,0],points[i,1],points[i,2],c[0],c[1],c[2]))
+        c = [int(x*150) for x in c]
+        fout.write('%f %f %f %d %d %d\n' % (points[i,0],points[i,1],points[i,2],c[0],c[0],c[0]))
     fout.close()
             
 def write_ply_rgb(points, colors, out_filename, num_classes=None):
@@ -88,10 +89,14 @@ def get_transform3d(data, input_transforms_list, vox=False):
     outdata = []
     counter = 0
     centers = []
-    for point_cloud in ptdata:
+    for i, point_cloud in enumerate(ptdata):
+        idx=data['label'][i] # Point cloud index, to identify and debug
         if len(point_cloud) > 50000:
             newidx = np.random.choice(len(point_cloud), 50000, replace=False)
             point_cloud = point_cloud[newidx,:]
+
+        #write_ply_color(point_cloud[:,:3], point_cloud[:,3:],str(idx)+"_before.ply")
+
         for transform_config in input_transforms_list:
             if transform_config['name'] == 'subcenter':
                 xyz_center = np.expand_dims(np.mean(point_cloud[:,:3], axis=0), 0)
@@ -142,6 +147,9 @@ def get_transform3d(data, input_transforms_list, vox=False):
                 
                 point_cloud = point_cloud[new_pointidx,:]
             if transform_config['name'] == 'ToTensorLidar':
+
+                #write_ply_color(point_cloud[:,:3], point_cloud[:,3:],str(idx)+"_after.ply")
+
                 lpt = len(point_cloud)
                 if (vox == False):
                     num_points = 16384
@@ -292,7 +300,9 @@ def get_transform3d(data, input_transforms_list, vox=False):
                     maxidx = min(len(numv)-1,max_idx+2)
                     range_v = [numv[minidx], numv[maxidx]]
                 loop_count = 0
-                #write_ply_color(point_cloud[:,:3], point_cloud[:,3:], "before.ply")
+                
+                #write_ply_color(point_cloud[:,:3], point_cloud[:,3:],str(idx)+"_before.ply")
+                
                 while True:
                     sample_center = point_cloud[np.random.choice(len(point_cloud)), 0:3]
                     loop_count += 1
@@ -309,7 +319,9 @@ def get_transform3d(data, input_transforms_list, vox=False):
 
                 new_pointidx = ~((upper_idx) & (lower_idx))
                 point_cloud = point_cloud[new_pointidx,:]
-                #write_ply_color(point_cloud[:,:3], point_cloud[:,3:], "after.ply")
+
+                #write_ply_color(point_cloud[:,:3], point_cloud[:,3:],str(idx)+"_after.ply")
+            
             if transform_config['name'] == 'ToTensor':
                 if len(point_cloud) >= 20000:
                     idx = np.random.choice(len(point_cloud), 20000, replace=False)

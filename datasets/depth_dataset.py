@@ -32,7 +32,7 @@ import torch
 ### Waymo lidar range
 #POINT_RANGE = np.array([  0. , -75. ,  -3. ,  75.0,  75. ,   3. ], dtype=np.float32)
 ### KITTI
-POINT_RANGE = np.array([ -75, -75, -3, 75, 75, 2 ], dtype=np.float32)
+POINT_RANGE = np.array([-70.4, -40, -3, 70.4, 40, 1], dtype=np.float32)
 
 class DepthContrastDataset(Dataset):
     """Base Self Supervised Learning Dataset Class."""
@@ -185,6 +185,9 @@ class DepthContrastDataset(Dataset):
                 lower_idx = np.sum((point[:,0:3] >= POINT_RANGE[0:3]).astype(np.int32), 1) == 3
                 new_pointidx = (upper_idx) & (lower_idx)
                 point = point[new_pointidx,:]
+                
+                #print ("Loaded point cloud",idx)
+                #np.save('./viz/'+str(idx)+'_load_original', point)
 
             else:
                 point = np.load(point_path)
@@ -228,29 +231,29 @@ class DepthContrastDataset(Dataset):
 
         ### Apply the transformation here
         if (cfg["DATA_TYPE"] == "point_vox"):
-            tempitem = {"data": item["data"]}
+            tempitem = {"data": item["data"], "label": item["label"]}
             tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"])
             item["data"] = tempdata["data"]
 
-            tempitem = {"data": item["data_moco"]}
+            tempitem = {"data": item["data_moco"], "label": item["label"]}
             tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"])
             item["data_moco"] = tempdata["data"]
 
-            tempitem = {"data": item["vox"]}
+            tempitem = {"data": item["vox"], "label": item["label"]}
             tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"], vox=True)
             coords = tempdata["data"][0][:,:3]
             feats = tempdata["data"][0][:,3:6]*255.0#np.ones(coords.shape)*255.0
             labels = np.zeros(coords.shape[0]).astype(np.int32)
             item["vox"] = [self.toVox(coords, feats, labels)]
             
-            tempitem = {"data": item["vox_moco"]}
+            tempitem = {"data": item["vox_moco"], "label": item["label"]}
             tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"], vox=True)
             coords = tempdata["data"][0][:,:3]
             feats = tempdata["data"][0][:,3:6]*255.0#np.ones(coords.shape)*255.0
             labels = np.zeros(coords.shape[0]).astype(np.int32)                    
             item["vox_moco"] = [self.toVox(coords, feats, labels)]               
         else:
-            tempitem = {"data": item["data"]}
+            tempitem = {"data": item["data"], "label": item["label"]}
             tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"], vox=cfg["VOX"])
             if cfg["VOX"]:
                 coords = tempdata["data"][0][:,:3]
@@ -260,7 +263,7 @@ class DepthContrastDataset(Dataset):
             else:
                 item["data"] = tempdata["data"]
     
-            tempitem = {"data": item["data_moco"]}                
+            tempitem = {"data": item["data_moco"], "label": item["label"]}                
             tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"], vox=cfg["VOX"])
             if cfg["VOX"]:
                 coords = tempdata["data"][0][:,:3]

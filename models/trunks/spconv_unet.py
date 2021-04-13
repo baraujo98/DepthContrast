@@ -64,8 +64,11 @@ class UNetV2_concat(nn.Module):
         super().__init__()
 
         input_channels = 4
-        voxel_size = [0.1, 0.1, 0.2]
-        point_cloud_range = np.array([  0. , -75. ,  -3. ,  75.0,  75. ,   3. ], dtype=np.float32)
+        #voxel_size = [0.1, 0.1, 0.2]
+        #point_cloud_range = np.array([  0. , -75. ,  -3. ,  75.0,  75. ,   3. ], dtype=np.float32)
+
+        voxel_size = [0.05, 0.05, 0.1]
+        point_cloud_range = np.array([-70.4, -40, -3, 70.4, 40, 1], dtype=np.float32)
 
         grid_size = (point_cloud_range[3:6] - point_cloud_range[0:3]) / np.array(voxel_size)
         grid_size = np.round(grid_size).astype(np.int64)
