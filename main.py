@@ -100,18 +100,19 @@ def main_worker(gpu, ngpus, args, cfg):
     start_epoch, end_epoch = 0, cfg['optimizer']['num_epochs']
     if cfg['resume']:
         if ckp_manager.checkpoint_exists(last=True):
-            start_epoch = ckp_manager.restore(restore_last=True, model=model, optimizer=optimizer, train_criterion=train_criterion)
+            start_epoch = ckp_manager.restore(restore_last=True, reset_optimizer=cfg['optimizer']['reset'], model=model, optimizer=optimizer, train_criterion=train_criterion)
             scheduler.step(start_epoch)
             logger.add_line("Checkpoint loaded: '{}' (epoch {})".format(ckp_manager.last_checkpoint_fn(), start_epoch))
         else:
             logger.add_line("No checkpoint found at '{}'".format(ckp_manager.last_checkpoint_fn()))
 
     cudnn.benchmark = True
+    do_checkpoint = False
 
     ############################ TRAIN #########################################
     test_freq = cfg['test_freq'] if 'test_freq' in cfg else 1
     for epoch in range(start_epoch, end_epoch):
-        if (epoch % 10) == 0:
+        if (epoch % 10) == 0 and do_checkpoint == True:
             ckp_manager.save(epoch, model=model, train_criterion=train_criterion, optimizer=optimizer, filename='checkpoint-ep{}.pth.tar'.format(epoch))
 
         if args.multiprocessing_distributed:
@@ -122,6 +123,8 @@ def main_worker(gpu, ngpus, args, cfg):
         logger.add_line('LR: {}'.format(scheduler.get_lr()))
         run_phase('train', train_loader, model, optimizer, train_criterion, epoch, args, cfg, logger, tb_writter)
         scheduler.step(epoch)
+
+        do_checkpoint = True
 
         if ((epoch % test_freq) == 0) or (epoch == end_epoch - 1):
             ckp_manager.save(epoch+1, model=model, optimizer=optimizer, train_criterion=train_criterion)

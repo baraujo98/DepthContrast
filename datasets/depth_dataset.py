@@ -232,22 +232,22 @@ class DepthContrastDataset(Dataset):
         ### Apply the transformation here
         if (cfg["DATA_TYPE"] == "point_vox"):
             tempitem = {"data": item["data"], "label": item["label"]}
-            tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"])
+            tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"], "data")
             item["data"] = tempdata["data"]
 
             tempitem = {"data": item["data_moco"], "label": item["label"]}
-            tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"])
+            tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"], "data_moco")
             item["data_moco"] = tempdata["data"]
 
             tempitem = {"data": item["vox"], "label": item["label"]}
-            tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"], vox=True)
+            tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"], "vox", vox=True)
             coords = tempdata["data"][0][:,:3]
             feats = tempdata["data"][0][:,3:6]*255.0#np.ones(coords.shape)*255.0
             labels = np.zeros(coords.shape[0]).astype(np.int32)
             item["vox"] = [self.toVox(coords, feats, labels)]
             
             tempitem = {"data": item["vox_moco"], "label": item["label"]}
-            tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"], vox=True)
+            tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"], "vox_moco", vox=True)
             coords = tempdata["data"][0][:,:3]
             feats = tempdata["data"][0][:,3:6]*255.0#np.ones(coords.shape)*255.0
             labels = np.zeros(coords.shape[0]).astype(np.int32)                    

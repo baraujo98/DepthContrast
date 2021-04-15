@@ -83,7 +83,7 @@ def check_aspect2D(crop_range, aspect_min):
     xy_aspect = np.min(crop_range[:2])/np.max(crop_range[:2])
     return (xy_aspect >= aspect_min)
 
-def get_transform3d(data, input_transforms_list, vox=False):
+def get_transform3d(data, input_transforms_list, representation="", vox=False):
     output_transforms = []
     ptdata = data['data']
     outdata = []
@@ -105,6 +105,9 @@ def get_transform3d(data, input_transforms_list, vox=False):
                 if np.random.random() > 0.5:
                     # Flipping along the XZ plane
                     point_cloud[:,1] = -1 * point_cloud[:,1]
+                if np.random.random() > 0.5:
+                    # Flipping along the YZ plane
+                    point_cloud[:,0] = -1 * point_cloud[:,0]
             if transform_config['name'] == 'RandomRotateLidar':
                 # Rotation along up-axis/Z-axis
                 rot_angle = (np.random.random()*np.pi/2) - np.pi/4 # -5 ~ +5 degree
@@ -289,38 +292,31 @@ def get_transform3d(data, input_transforms_list, vox=False):
                 #pc2obj(point_cloud, "new.obj")
             if transform_config['name'] == 'randomdrop':
                 range_xyz = np.max(point_cloud[:,0:3], axis=0) - np.min(point_cloud[:,0:3], axis=0)
-
-                crop_range = float(transform_config['crop'])
-                new_range = range_xyz * crop_range / 2.0
-
-                if "dist_sample" in transform_config:
-                    numb,numv = np.histogram(point_cloud[:,2])
-                    max_idx = np.argmax(numb)
-                    minidx = max(0,max_idx-2)
-                    maxidx = min(len(numv)-1,max_idx+2)
-                    range_v = [numv[minidx], numv[maxidx]]
-                loop_count = 0
+                drop_base = float(transform_config['dropbase'])
+                drop_limit = float(transform_config['droplimit'])
                 
                 #write_ply_color(point_cloud[:,:3], point_cloud[:,3:],str(idx)+"_before.ply")
-                
-                while True:
+
+                for i in range(int(transform_config['patches'])):
+                    new_range = range_xyz * (drop_base + (np.random.random()*2.0-1.0)*drop_limit) / 2.0
+                    
+                    if np.random.random() <= 0.33:
+                        aux=new_range[0]
+                        new_range[0]=new_range[1]
+                        new_range[1]=aux
+                        new_range*=0.8
+                    
                     sample_center = point_cloud[np.random.choice(len(point_cloud)), 0:3]
-                    loop_count += 1
-                    if "dist_sample" in transform_config:
-                        if (loop_count <= 100):
-                            if (sample_center[-1] > range_v[1]) or (sample_center[-1] < range_v[0]):
-                                continue
-                    break
-                max_xyz = sample_center + new_range
-                min_xyz = sample_center - new_range
+                    max_xyz = sample_center + new_range
+                    min_xyz = sample_center - new_range
 
-                upper_idx = np.sum((point_cloud[:,0:3] < max_xyz).astype(np.int32), 1) == 3
-                lower_idx = np.sum((point_cloud[:,0:3] > min_xyz).astype(np.int32), 1) == 3
+                    upper_idx = np.sum((point_cloud[:,0:3] < max_xyz).astype(np.int32), 1) == 3
+                    lower_idx = np.sum((point_cloud[:,0:3] > min_xyz).astype(np.int32), 1) == 3
 
-                new_pointidx = ~((upper_idx) & (lower_idx))
-                point_cloud = point_cloud[new_pointidx,:]
+                    new_pointidx = ~((upper_idx) & (lower_idx))
+                    point_cloud = point_cloud[new_pointidx,:]
 
-                #write_ply_color(point_cloud[:,:3], point_cloud[:,3:],str(idx)+"_after.ply")
+                #write_ply_color(point_cloud[:,:3], point_cloud[:,3:],str(idx)+"_"+representation+".ply")
             
             if transform_config['name'] == 'ToTensor':
                 if len(point_cloud) >= 20000:

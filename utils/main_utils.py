@@ -6,6 +6,7 @@
 #
 
 import os
+import glob
 import shutil
 import torch
 import numpy as np
@@ -264,7 +265,15 @@ class CheckpointManager(object):
             save_checkpoint(state=state, is_best=False, filename='{}/{}'.format(self.checkpoint_dir, filename))
 
     def last_checkpoint_fn(self):
-        return '{}/checkpoint.pth.tar'.format(self.checkpoint_dir)
+        try:
+            ckp_list = list(glob.glob(os.path.join(self.checkpoint_dir, '*.pth.tar')))
+            if not ckp_list:
+                raise ValueError('No checkpoints in the directory.')
+            ckp_list.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+            return ckp_list[0]
+        except:
+            print("No checkpoints found!")
+            return '{}/checkpoint.pth.tar'.format(self.checkpoint_dir)
 
     def best_checkpoint_fn(self):
         return '{}/model_best.pth.tar'.format(self.checkpoint_dir)
@@ -280,7 +289,7 @@ class CheckpointManager(object):
     def checkpoint_exists(self, last=False, best=False):
         return os.path.isfile(self.checkpoint_fn(last, best))
 
-    def restore(self, fn=None, restore_last=False, restore_best=False, **kwargs):
+    def restore(self, fn=None, restore_last=False, restore_best=False, reset_optimizer=False, **kwargs):
         checkpoint_fn = fn if fn is not None else self.checkpoint_fn(restore_last, restore_best)
         ckp = torch.load(checkpoint_fn, map_location={'cuda:0': 'cpu'})
         start_epoch = ckp['epoch']
@@ -291,6 +300,8 @@ class CheckpointManager(object):
                     newparam[tempk[7:]] = ckp[k][tempk]
                 ### Fix the module issue
                 kwargs[k].load_state_dict(newparam)
+            #elif (k == 'optimizer') and reset_optimizer:
+            #    pass
             else:
                 kwargs[k].load_state_dict(ckp[k])
         return start_epoch
