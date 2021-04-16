@@ -23,13 +23,13 @@ dataset:
   POINT_TRANSFORMS:
     - name: randomcuboidLidar
       crop: 0.40
-      npoints: 8500
+      npoints: 8000
       randcrop: 0.95
       aspect: 0.75
     - name: randomdrop
       patches: 3
-      dropbase: 0.15
-      droplimit: 0.1  
+      dropbase: 0.25
+      droplimit: 0.05  
     - name: RandomFlipLidar
     - name: RandomRotateLidar
     - name: RandomScaleLidar
