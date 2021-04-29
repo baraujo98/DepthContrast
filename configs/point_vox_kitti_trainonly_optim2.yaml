@@ -14,8 +14,8 @@ print_freq: 10
 
 dataset:
   DATASET_NAMES: [kitti]
-  DATA_PATHS: ['/ctm-hdd-pool01/baraujo/kitti/dc/kitti.npy']
-  BATCHSIZE_PER_REPLICA: 8
+  DATA_PATHS: ['/ctm-hdd-pool01/baraujo/kitti/dc/kitti_trainonly.npy']
+  BATCHSIZE_PER_REPLICA: 10
   LABEL_TYPE: sample_index
   DATA_TYPE: point_vox
   Lidar: True
@@ -23,12 +23,12 @@ dataset:
   POINT_TRANSFORMS:
     - name: randomcuboidLidar
       crop: 0.45
-      npoints: 8000
+      npoints: 8500
       randcrop: 0.95
       aspect: 0.75
     - name: randomdrop
       patches: 3
-      dropbase: 0.20
+      dropbase: 0.25
       droplimit: 0.05  
     - name: RandomFlipLidar
     - name: RandomRotateLidar
@@ -51,7 +51,7 @@ optimizer:
   reset: False
 
 model:
-  name: "PointnetMSG_UnetV2"
+  name: "PointnetMSG_UnetV2_TrainOnly_Optim2"
   model_dir: "checkpoints/pointnetMSG_UnetV2_Kitti"
   model_input: ["points", "points_moco", "vox", "vox_moco"]
   model_feature: [["fp2"], ["fp2"], ["conv4"], ["conv4"]]
@@ -79,5 +79,5 @@ loss:
       NORM_EMBEDDING: True
       TEMPERATURE: 0.1
       LOSS_TYPE: cross_entropy
-      NUM_NEGATIVES: 65536
+      NUM_NEGATIVES: 65530
       EMBEDDING_DIM: 128

@@ -11,16 +11,24 @@ import glob
 import pathlib
 
 kitti_dir = '/ctm-hdd-pool01/baraujo/kitti/dc'
-frames = sorted(glob.glob(kitti_dir+'/training/velodyne'+'/*'))
+chosen_set= 'ImageSets/train.txt'
+
+#frames = sorted(glob.glob(kitti_dir+'/training/velodyne'+'/*'))
 
 datalist = []
 
-for frame in frames:
-    datalist.append(os.path.abspath(frame))
+filepath = os.path.join(kitti_dir, chosen_set)
+file = open(filepath)
+for sample in file:
+    datalist.append(os.path.join(kitti_dir,'training', 'velodyne', sample.rstrip() + '.bin'))
+
+
+#for frame in frames:
+#    datalist.append(os.path.abspath(frame))
 
 # Save list of paths to .npy
-np.save(kitti_dir+'/kitti.npy', datalist)
+np.save(kitti_dir+'/kitti_trainonly.npy', datalist)
 
 # Sava also a .txt, to be human-readable
-x=np.load(kitti_dir+'/kitti.npy')
-np.savetxt(kitti_dir+'/kitti.txt',x,fmt="%s") 
+x=np.load(kitti_dir+'/kitti_trainonly.npy')
+np.savetxt(kitti_dir+'/kitti_trainonly.txt',x,fmt="%s") 

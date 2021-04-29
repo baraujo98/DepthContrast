@@ -342,6 +342,10 @@ def get_transform3d(data, input_transforms_list, representation="", vox=False):
                     point_noise = (np.random.rand(pt_shape[0], 3) - 0.5) * float(transform_config['noise'])
                     point_cloud[:,0:3] += point_noise
                 point_cloud = point_cloud[idx,:]
+        
+        #write_ply_color(point_cloud[:,:3], point_cloud[:,3:],str(idx)+"_"+representation+".ply")
+        
         outdata.append(point_cloud)
+    
     data['data'] = outdata
     return data
