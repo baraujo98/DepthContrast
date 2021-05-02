@@ -233,6 +233,17 @@ def get_transform3d(data, input_transforms_list, representation="", vox=False):
                 pt_shape = point_cloud.shape
                 point_noise = (np.random.rand(pt_shape[0], 3) - 0.5) * float(transform_config['noise'])
                 point_cloud[:,0:3] += point_noise#[new_pointidx,:]
+            
+            if (transform_config['name'] == 'RandomNoiseLidar') and (vox == False):
+                pt_shape = point_cloud.shape
+
+                point_posnoise = (np.random.rand(pt_shape[0], 3) - 0.5) * float(transform_config['posnoise'])
+                point_cloud[:,0:3] += point_posnoise#[new_pointidx,:]
+
+                point_lightnoise = (np.random.rand(pt_shape[0]) - 0.5) * float(transform_config['lightnoise'])
+                point_cloud[:,3] += point_lightnoise#[new_pointidx,:]
+                point_cloud[:,3] = np.clip(point_cloud[:,3], 0, 1)
+            
             if transform_config['name'] == 'randomcuboid':
                 range_xyz = np.max(point_cloud[:,0:3], axis=0) - np.min(point_cloud[:,0:3], axis=0)
                 if ('randcrop' in transform_config):# and (int(transform_config['randcrop']) == 1):

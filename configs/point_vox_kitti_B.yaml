@@ -34,6 +34,8 @@ dataset:
     - name: RandomRotateLidar
     - name: RandomScaleLidar
     - name: RandomNoiseLidar
+      posnoise: 0.02
+      lightnoise: 0.05
     - name: ToTensorLidar
   COLLATE_FUNCTION: "point_vox_moco_collator"
   INPUT_KEY_NAMES: ["points", "points_moco", "vox", "vox_moco"]
@@ -52,7 +54,7 @@ optimizer:
   reset: False
 
 model:
-  name: "PointnetMSG_UnetV2_A"
+  name: "PointnetMSG_UnetV2_B"
   model_dir: "checkpoints/pointnetMSG_UnetV2_Kitti"
   model_input: ["points", "points_moco", "vox", "vox_moco"]
   model_feature: [["fp2"], ["fp2"], ["conv4"], ["conv4"]]
