@@ -7,6 +7,7 @@
 #
 import torch
 import numpy as np
+import scipy
 
 def rotx(t):
     """Rotation about the y-axis."""
@@ -83,6 +84,41 @@ def check_aspect2D(crop_range, aspect_min):
     xy_aspect = np.min(crop_range[:2])/np.max(crop_range[:2])
     return (xy_aspect >= aspect_min)
 
+def elastic_distortion(coords, granularity, magnitude):
+    """Apply elastic distortion on sparse coordinate space.
+
+      pointcloud: numpy array of (number of points, at least 3 spatial dims)
+      granularity: size of the noise grid (in same scale[m/cm] as the voxel grid)
+      magnitude: noise multiplier
+    """
+    granularity = float(granularity)
+    magnitude = float(magnitude)
+
+    blurx = np.ones((3, 1, 1, 1)).astype('float32') / 3
+    blury = np.ones((1, 3, 1, 1)).astype('float32') / 3
+    blurz = np.ones((1, 1, 3, 1)).astype('float32') / 3
+    coords_min = coords.min(0)
+
+    # Create Gaussian noise tensor of the size given by granularity.
+    noise_dim = ((coords - coords_min).max(0) // granularity).astype(int) + 3
+    noise = np.random.randn(*noise_dim, 3).astype(np.float32)
+
+    # Smoothing.
+    for _ in range(2):
+      noise = scipy.ndimage.filters.convolve(noise, blurx, mode='constant', cval=0)
+      noise = scipy.ndimage.filters.convolve(noise, blury, mode='constant', cval=0)
+      noise = scipy.ndimage.filters.convolve(noise, blurz, mode='constant', cval=0)
+
+    # Trilinear interpolate noise filters for each spatial dimensions.
+    ax = [
+        np.linspace(d_min, d_max, d)
+        for d_min, d_max, d in zip(coords_min - granularity, coords_min + granularity *
+                                   (noise_dim - 2), noise_dim)
+    ]
+    interp = scipy.interpolate.RegularGridInterpolator(ax, noise, bounds_error=0, fill_value=0)
+    coords += interp(coords) * magnitude
+    return coords
+
 def get_transform3d(data, input_transforms_list, representation="", vox=False):
     output_transforms = []
     ptdata = data['data']
@@ -115,6 +151,16 @@ def get_transform3d(data, input_transforms_list, representation="", vox=False):
                 point_cloud[:,0:3] = np.dot(point_cloud[:,0:3], np.transpose(rot_mat))
             if transform_config['name'] == 'RandomScaleLidar':
                 point_cloud[:,0:3] = point_cloud[:,0:3] * np.random.uniform(0.95, 1.05)
+            if (transform_config['name'] == 'elasticdistortion') and (vox == False):
+                #write_ply_color(point_cloud[:,:3], point_cloud[:,3:],str(idx)+"_"+representation+"_before.ply")
+                for gran,magn in zip(transform_config['granularity'],transform_config['magnitude']):
+                    point_cloud[:,0:3] = elastic_distortion(point_cloud[:,0:3],gran,magn)
+                #write_ply_color(point_cloud[:,:3], point_cloud[:,3:],str(idx)+"_"+representation+"_after.ply")
+                # for granularity in [2,1,0.5,0.25]:
+                #     for magnitude in [0.25,0.5,1,2]:
+                #         point_cloud2 = np.copy(point_cloud)
+                #         point_cloud2[:,0:3] = elastic_distortion(point_cloud2[:,0:3],granularity,magnitude)
+                #         write_ply_color(point_cloud2[:,:3], point_cloud2[:,3:],str(idx)+"_"+representation+"_after_"+str(granularity)+"_"+str(magnitude)+".ply")
             if transform_config['name'] == 'randomcuboidLidar':
                 range_xyz = np.max(point_cloud[:,0:2], axis=0) - np.min(point_cloud[:,0:2], axis=0)
                 if ('randcrop' in transform_config):
@@ -237,12 +283,14 @@ def get_transform3d(data, input_transforms_list, representation="", vox=False):
             if (transform_config['name'] == 'RandomNoiseLidar') and (vox == False):
                 pt_shape = point_cloud.shape
 
-                point_posnoise = (np.random.rand(pt_shape[0], 3) - 0.5) * float(transform_config['posnoise'])
+                point_posnoise = (np.random.rand(pt_shape[0], 3) - 0.5) * 2 * float(transform_config['posnoise'])
                 point_cloud[:,0:3] += point_posnoise#[new_pointidx,:]
 
-                point_lightnoise = (np.random.rand(pt_shape[0]) - 0.5) * float(transform_config['lightnoise'])
+                point_lightnoise = (np.random.rand(pt_shape[0]) - 0.5) * 2 * float(transform_config['lightnoise'])
                 point_cloud[:,3] += point_lightnoise#[new_pointidx,:]
                 point_cloud[:,3] = np.clip(point_cloud[:,3], 0, 1)
+
+                #print(str(idx)+" "+representation+": "+ str(point_lightnoise[0]))
             
             if transform_config['name'] == 'randomcuboid':
                 range_xyz = np.max(point_cloud[:,0:3], axis=0) - np.min(point_cloud[:,0:3], axis=0)

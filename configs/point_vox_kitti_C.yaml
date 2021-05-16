@@ -1,0 +1,89 @@
+resume: true
+test_only: false
+num_workers: 2
+
+required_devices: 1
+no_test: false
+debug: false
+log2tb: true
+allow_double_bs: false
+seed: 0
+distributed: false
+test_freq: 2
+print_freq: 10
+
+dataset:
+  DATASET_NAMES: [kitti]
+  DATA_PATHS: ['/ctm-hdd-pool01/baraujo/kitti/dc/kitti_trainonly.npy']
+  BATCHSIZE_PER_REPLICA: 10
+  LABEL_TYPE: sample_index
+  DATA_TYPE: point_vox
+  Lidar: True
+  VOX: True
+  POINT_TRANSFORMS:
+    - name: elasticdistortion
+      granularity: [ 25.0 , 2.0 ] 
+      magnitude:   [ 30.0 , 1.0 ]
+    - name: randomcuboidLidar
+      crop: 0.45
+      npoints: 8500
+      randcrop: 0.95
+      aspect: 0.75
+    - name: randomdrop
+      patches: 3
+      dropbase: 0.25
+      droplimit: 0.05
+    - name: RandomFlipLidar
+    - name: RandomRotateLidar
+    - name: RandomScaleLidar
+    - name: RandomNoiseLidar
+      posnoise: 0.02
+      lightnoise: 0.05
+    - name: ToTensorLidar
+  COLLATE_FUNCTION: "point_vox_moco_collator"
+  INPUT_KEY_NAMES: ["points", "points_moco", "vox", "vox_moco"]
+  DROP_LAST: True
+
+optimizer:
+  name: "sgd"
+  weight_decay: 0.0001
+  momentum: 0.9
+  nesterov: False
+  num_epochs: 1000
+  lr:
+    name: "cosine"
+    base_lr: 0.04
+    final_lr: 0.00004
+  reset: False
+
+model:
+  name: "PointnetMSG_UnetV2_C"
+  model_dir: "checkpoints/pointnetMSG_UnetV2_Kitti"
+  model_input: ["points", "points_moco", "vox", "vox_moco"]
+  model_feature: [["fp2"], ["fp2"], ["conv4"], ["conv4"]]
+  Lidar: True
+  arch_point: "pointnet_msg"
+  args_point:
+    use_mlp: True
+    mlp_dim: [128, 128, 128]
+  arch_vox: "UNetV2"
+  args_vox:
+    use_mlp: True
+    mlp_dim: [128, 128, 128]
+
+loss:
+  name: "NCELossMoco"
+  args:
+    two_domain: True
+    LOSS_TYPE: NPID,CMC
+    OTHER_INPUT: True
+    within_format_weight0: 0.5
+    within_format_weight1: 0.5
+    across_format_weight0: 0.5
+    across_format_weight1: 0.5
+    NCE_LOSS:
+      NORM_EMBEDDING: True
+      TEMPERATURE: 0.1
+      LOSS_TYPE: cross_entropy
+      NUM_NEGATIVES: 3710
+      EMBEDDING_DIM: 128
