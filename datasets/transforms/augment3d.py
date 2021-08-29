@@ -44,8 +44,8 @@ def pc2obj(pc, filepath='test.obj'):
 def write_ply_color(points, colors, out_filename):
     """ Color (N,3) points with labels (N) within range 0 ~ num_classes-1 as OBJ file """
     N = points.shape[0]
-    save_dir="viz/"
-    fout = open(save_dir+out_filename, 'w')
+    #save_dir="viz/"
+    fout = open(out_filename, 'w')
     ### Write header here
     fout.write("ply\n")
     fout.write("format ascii 1.0\n")
@@ -119,7 +119,7 @@ def elastic_distortion(coords, granularity, magnitude):
     coords += interp(coords) * magnitude
     return coords
 
-def get_transform3d(data, input_transforms_list, representation="", vox=False):
+def get_transform3d(data, input_transforms_list, representation="", scheme="", vox=False):
     output_transforms = []
     ptdata = data['data']
     outdata = []
@@ -147,10 +147,14 @@ def get_transform3d(data, input_transforms_list, representation="", vox=False):
             if transform_config['name'] == 'RandomRotateLidar':
                 # Rotation along up-axis/Z-axis
                 rot_angle = (np.random.random()*np.pi/2) - np.pi/4 # -5 ~ +5 degree
+                #print(rot_angle)
                 rot_mat = rotz(rot_angle)
                 point_cloud[:,0:3] = np.dot(point_cloud[:,0:3], np.transpose(rot_mat))
             if transform_config['name'] == 'RandomScaleLidar':
                 point_cloud[:,0:3] = point_cloud[:,0:3] * np.random.uniform(0.95, 1.05)
+                # if representation=='data':
+                #     write_ply_color(point_cloud[:,:3], point_cloud[:,3:],"viz/ply/"+scheme+"/"+str(idx)+".ply")
+                #     np.save("viz/npy/"+scheme+"/"+str(idx),point_cloud)
             if (transform_config['name'] == 'elasticdistortion') and (vox == False):
                 #write_ply_color(point_cloud[:,:3], point_cloud[:,3:],str(idx)+"_"+representation+"_before.ply")
                 for gran,magn in zip(transform_config['granularity'],transform_config['magnitude']):

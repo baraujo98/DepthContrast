@@ -39,7 +39,7 @@ parser.add_argument('--world-size', default=-1, type=int,
                     help='number of nodes for distributed training')
 parser.add_argument('--rank', default=-1, type=int,
                     help='node rank for distributed training')
-parser.add_argument('--dist-url', default='tcp://localhost:15475', type=str,
+parser.add_argument('--dist-url', default='tcp://localhost:14475', type=str,
                     help='url used to set up distributed training')
 parser.add_argument('--dist-backend', default='nccl', type=str,
                     help='distributed backend')
@@ -54,6 +54,10 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'N processes per node, which has N GPUs. This is the '
                          'fastest way to use PyTorch for either single node or '
                          'multi node data parallel training')
+parser.add_argument('--set', default=None, type=str,
+                    help='something')
+parser.add_argument('--run', default=None, type=str,
+                    help='something')
 
 
 def main():
@@ -61,9 +65,12 @@ def main():
     cfg = yaml.safe_load(open(args.cfg))
     print('Dataset:',cfg["dataset"]["DATASET_NAMES"])
     
-    #cfg["dataset"]["BATCHSIZE_PER_REPLICA"]=2
-    cfg["dataset"]["DATA_PATHS"]=['/ctm-hdd-pool01/baraujo/kitti/dc/kitti_val.npy']
-    cfg["num_workers"]=6
+    #cfg["dataset"]["BATCHSIZE_PER_REPLICA"]=10
+    if args.set == 'train':
+        cfg["dataset"]["DATA_PATHS"]=['/home/baraujo/kitti/kitti_tsne_train.npy']
+    elif args.set == 'val':
+        cfg["dataset"]["DATA_PATHS"]=['/home/baraujo/kitti/kitti_tsne_val.npy']
+    cfg["num_workers"]=1
     
     if args.seed is not None:
         random.seed(args.seed)
@@ -102,38 +109,44 @@ def main_worker(gpu, ngpus, args, cfg):
     train_loader = main_utils.build_dataloaders(cfg['dataset'], cfg['num_workers'], args.multiprocessing_distributed, logger)       
 
     # Define criterion    
-    train_criterion = main_utils.build_criterion(cfg['loss'], logger=logger)
-    train_criterion = train_criterion.cuda()
-            
+    #train_criterion = main_utils.build_criterion(cfg['loss'], logger=logger)
+    #train_criterion = train_criterion.cuda()
+    train_criterion=None
+
     # Define optimizer
-    optimizer, scheduler = main_utils.build_optimizer(
-        params=list(model.parameters())+list(train_criterion.parameters()),
-        cfg=cfg['optimizer'],
-        logger=logger)
-    
+    #optimizer, scheduler = main_utils.build_optimizer(
+    #    params=list(model.parameters())+list(train_criterion.parameters()),
+    #    cfg=cfg['optimizer'],
+    #    logger=logger)
+    optimizer, scheduler = None, None
+
     ckp_manager = main_utils.CheckpointManager(model_dir, rank=args.rank, dist=args.multiprocessing_distributed)
     # Optionally resume from a checkpoint
     start_epoch, end_epoch = 0, cfg['optimizer']['num_epochs']
     # if cfg['resume']:
     #     if ckp_manager.checkpoint_exists(last=True):
     try:
-        start_epoch = ckp_manager.restore(fn=args.ckp, reset_optimizer=cfg['optimizer']['reset'], model=model, optimizer=optimizer, train_criterion=train_criterion)
-        scheduler.step(start_epoch)
+        #start_epoch = ckp_manager.restore(fn=args.ckp, reset_optimizer=cfg['optimizer']['reset'], model=model, optimizer=optimizer, train_criterion=train_criterion)
+        start_epoch = ckp_manager.restore(fn=args.ckp, reset_optimizer=cfg['optimizer']['reset'], model=model)
+        #scheduler.step(start_epoch)
         logger.add_line("Checkpoint loaded: '{}' (epoch {})".format(args.ckp, start_epoch))
     except:
         logger.add_line("No checkpoint found at '{}'".format(args.ckp))
 
+    logger.add_line("Data path: '{}'".format(cfg["dataset"]["DATA_PATHS"]))
+    logger.add_line("Run: '{}'".format(args.run))
+    logger.add_line("Set: '{}'".format(args.set))
+
+
     cudnn.benchmark = True
     #do_checkpoint = False
-
-    indices = np.array([12,23,34,45,56,67])
     
     X = []
     idx = []
 
     ############################ TRAIN #########################################
     test_freq = cfg['test_freq'] if 'test_freq' in cfg else 1
-    for epoch in range(10):
+    for epoch in range(30):
         #if (epoch % 10) == 0 and do_checkpoint == True:
         #    ckp_manager.save(epoch, model=model, train_criterion=train_criterion, optimizer=optimizer, filename='checkpoint-ep{}.pth.tar'.format(epoch))
 
@@ -143,18 +156,18 @@ def main_worker(gpu, ngpus, args, cfg):
         # Train for one epoch
         logger.add_line('='*30 + ' Epoch {} '.format(epoch) + '='*30)
         #logger.add_line('LR: {}'.format(scheduler.get_lr()))
-        run_phase('train', train_loader, model, optimizer, train_criterion, epoch, args, cfg, logger, indices, X, idx)
-        scheduler.step(epoch)
+        run_phase('train', train_loader, model, optimizer, train_criterion, epoch, args, cfg, logger, X, idx)
+        #scheduler.step(epoch)
 
         # do_checkpoint = True
 
         #if ((epoch % test_freq) == 0) or (epoch == end_epoch - 1):
         #    ckp_manager.save(epoch+1, model=model, optimizer=optimizer, train_criterion=train_criterion)
 
-    np.save('embeds.npy', np.array(X).reshape(-1,128))
-    np.save('labels.npy', np.array(idx).ravel())
+    np.save('tsne/data/animation/embeds_'+args.run+'_'+args.set+'.npy', np.array(X).reshape(-1,128))
+    np.save('tsne/data/animation/labels_'+args.run+'_'+args.set+'.npy', np.array(idx).ravel())
 
-def run_phase(phase, loader, model, optimizer, criterion, epoch, args, cfg, logger, indices, X, idx):
+def run_phase(phase, loader, model, optimizer, criterion, epoch, args, cfg, logger, X, idx):
     # from utils import metrics_utils
     logger.add_line('\n{}: Epoch {}'.format(phase, epoch))
     # batch_time = metrics_utils.AverageMeter('Time', ':6.3f', window_size=100)

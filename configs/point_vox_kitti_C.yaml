@@ -14,12 +14,13 @@ print_freq: 10
 
 dataset:
   DATASET_NAMES: [kitti]
-  DATA_PATHS: ['/ctm-hdd-pool01/baraujo/kitti/dc/kitti_trainonly.npy']
+  DATA_PATHS: ['/home/baraujo/kitti/kitti_train.npy']
   BATCHSIZE_PER_REPLICA: 10
   LABEL_TYPE: sample_index
   DATA_TYPE: point_vox
   Lidar: True
   VOX: True
+  Scheme: 'C'
   POINT_TRANSFORMS:
     - name: elasticdistortion
       granularity: [ 25.0 , 2.0 ] 

@@ -232,7 +232,7 @@ class DepthContrastDataset(Dataset):
         ### Apply the transformation here
         if (cfg["DATA_TYPE"] == "point_vox"):
             tempitem = {"data": item["data"], "label": item["label"]}
-            tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"], "data")
+            tempdata = get_transform3d(tempitem, cfg["POINT_TRANSFORMS"], "data",scheme=cfg["Scheme"])
             item["data"] = tempdata["data"]
 
             tempitem = {"data": item["data_moco"], "label": item["label"]}
